@@ -34,7 +34,7 @@ MIN_TODOS_AT_T1 = 30
 # --- What counts as a TODO ---------------------------------------------------
 # A Python comment ('#') containing one of the markers as a whole word.
 # Uppercase only: lowercase "todo" is usually prose or a variable name.
-GREP_PATTERN = r"#.*\b(TODO|FIXME|XXX|HACK)\b"
+GREP_PATTERN = r"#.*(TODO|FIXME|XXX|HACK)"
 MARKERS = ("TODO", "FIXME", "XXX", "HACK")
 FILE_GLOB = "*.py"
 
