@@ -1,0 +1,38 @@
+# Candidate Python repos: active, multi-contributor, long history, varied domains.
+# check_repos.py decides which ones actually qualify.
+#
+# Tested 2026-11-17: small, very clean projects have almost no TODOs and get
+# rejected (flask 2, requests 7, httpx 1, scrapy 15 at T1), so this list leans
+# toward large codebases.
+
+# verified OK
+pytest-dev/pytest
+sympy/sympy
+celery/celery
+sqlalchemy/sqlalchemy
+
+# web / networking
+django/django
+aio-libs/aiohttp
+tornadoweb/tornado
+twisted/twisted
+
+# developer tooling
+pypa/pip
+pypa/setuptools
+python-poetry/poetry
+ipython/ipython
+
+# data / science
+pandas-dev/pandas
+numpy/numpy
+scipy/scipy
+scikit-learn/scikit-learn
+networkx/networkx
+astropy/astropy
+dask/dask
+
+# infrastructure / automation
+apache/airflow
+ansible/ansible
+saltstack/salt
