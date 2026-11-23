@@ -1,8 +1,9 @@
-"""Day 2: turn todos.csv into the modelling table dataset.csv.
+"""Day 2: turn data/todos.csv into the modelling table data/dataset.csv.
 
-Usage:
-    python3 features.py                      # todos.csv -> dataset.csv + feature_report.txt
-    python3 features.py --in test.csv --out test_dataset.csv
+Usage (from the project folder):
+    python3 -m todofate.features.build_features
+        # data/todos.csv -> data/dataset.csv + results/feature_report.txt
+    python3 -m todofate.features.build_features --in test.csv --out test_dataset.csv
 
 Every feature is computed from the TODO's own text, its path, or the numbers
 mine_todos.py already measured at T1. Nothing looks at T2 or later, so no
@@ -19,7 +20,8 @@ import csv
 import math
 import re
 
-from deadline import is_deadline_tagged, is_version_tag
+from todofate import config
+from todofate.features.deadline import is_deadline_tagged, is_version_tag
 
 # --- Text patterns -----------------------------------------------------------
 # A link to a tracked issue: "#1234", "gh-1234", "issue 1234", "bpo-1234",
@@ -135,8 +137,9 @@ def report(rows):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="inp", default="todos.csv")
-    ap.add_argument("--out", default="dataset.csv")
+    ap.add_argument("--in", dest="inp", default=config.TODOS_CSV)
+    ap.add_argument("--out", default=config.DATASET_CSV)
+    ap.add_argument("--report", default=config.FEATURE_REPORT)
     args = ap.parse_args()
 
     with open(args.inp, encoding="utf-8") as f:
@@ -150,7 +153,7 @@ def main():
 
     text = report(rows)
     print(text)
-    with open("feature_report.txt", "w", encoding="utf-8") as f:
+    with open(args.report, "w", encoding="utf-8") as f:
         f.write(text + "\n")
     print(f"\n{len(rows)} rows, {len(BINARY_FEATURES) + len(NUMERIC_FEATURES)} features -> {args.out}")
 

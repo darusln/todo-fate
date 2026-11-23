@@ -1,8 +1,30 @@
 """Shared settings for the TODO mining pipeline.
 
-Every date and threshold the study depends on lives here, so the report
-can point to one place and the numbers can't drift between scripts.
+Every date, threshold and file path the study depends on lives here, so the
+report can point to one place and the numbers can't drift between scripts.
 """
+
+from pathlib import Path
+
+# --- Where files live ----------------------------------------------------------
+# Paths are built from this file's location, so scripts behave the same no
+# matter which folder they are started from.
+ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT / "data"            # inputs and intermediate tables (CSVs are git-ignored)
+RESULTS_DIR = ROOT / "results"      # everything the report quotes
+REPOS_DIR = DATA_DIR / "repos"      # --no-checkout clones, one folder per repo
+
+CANDIDATES = DATA_DIR / "candidates.txt"     # repos considered (Day 1)
+REPOS_OK = DATA_DIR / "repos_ok.txt"         # repos that passed eligibility
+TODOS_CSV = DATA_DIR / "todos.csv"           # mined and labelled TODOs
+DATASET_CSV = DATA_DIR / "dataset.csv"       # TODOs + features, the modelling table
+MINING_LOG = DATA_DIR / "mining_log.txt"     # per-repo counts and exclusions
+
+FEATURE_REPORT = RESULTS_DIR / "feature_report.txt"
+RESULTS_TIME_SPLIT = RESULTS_DIR / "day3_time_split.md"
+RESULTS_CROSS_PROJECT = RESULTS_DIR / "day4_cross_project.md"
+RESULTS_REPLAY = RESULTS_DIR / "day4_replay.md"
+RANKINGS_DIR = RESULTS_DIR / "rankings"
 
 # --- Rolling yearly snapshots -------------------------------------------------
 # For each year Y we take three snapshots of the main branch:
@@ -34,7 +56,10 @@ MIN_TODOS_AT_T1 = 30
 # --- What counts as a TODO ---------------------------------------------------
 # A Python comment ('#') containing one of the markers as a whole word.
 # Uppercase only: lowercase "todo" is usually prose or a variable name.
-GREP_PATTERN = r"#.*\b(TODO|FIXME|XXX|HACK)\b"
+# No \b here: macOS git's regex engine doesn't support it and silently matches
+# nothing. git grep finds candidates; mine_todos.parse_comment then enforces
+# the whole-word match in Python.
+GREP_PATTERN = r"#.*(TODO|FIXME|XXX|HACK)"
 MARKERS = ("TODO", "FIXME", "XXX", "HACK")
 FILE_GLOB = "*.py"
 
@@ -54,4 +79,7 @@ MIN_BODY_WORDS = 2
 MAX_TODOS_PER_REPO = 1500
 RANDOM_SEED = 42
 
-REPOS_DIR = "repos"
+
+def repo_dir(slug):
+    """Local clone folder for an "owner/name" slug, as a string for git -C."""
+    return str(REPOS_DIR / slug.replace("/", "__"))

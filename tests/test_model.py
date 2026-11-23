@@ -1,6 +1,6 @@
 """Checks that the from-scratch components compute what they claim.
 
-Run:  python3 test_model.py
+Run (from the project folder):  python3 -m tests.test_model
 Each check prints OK or stops with an error. Mention these in the report:
 they show the implementation was verified, not just run.
 """
@@ -9,9 +9,9 @@ import math
 
 import numpy as np
 
-from model.logreg import LogisticRegression, sigmoid
-from model.metrics import average_precision, precision_at_k, precision_recall_f1, roc_auc
-from model.tfidf import TfidfVectorizer, tokenize
+from todofate.model.logreg import LogisticRegression, sigmoid
+from todofate.model.metrics import average_precision, precision_at_k, precision_recall_f1, roc_auc
+from todofate.model.tfidf import TfidfVectorizer, tokenize
 
 
 def check(name, condition):

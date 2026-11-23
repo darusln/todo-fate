@@ -1,5 +1,8 @@
-repos/
+# Clones of the studied repos (several GB) and generated data tables
+data/repos/
 *.csv
-mining_log.txt
+data/mining_log.txt
+
+# Python / macOS
 __pycache__/
 .DS_Store

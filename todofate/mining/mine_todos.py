@@ -1,8 +1,11 @@
 """Step 2: extract every TODO at T1 and label it by whether it survives to T2.
 
-Usage:
-    python mine_todos.py repos_ok.txt              # all repos -> todos.csv
-    python mine_todos.py repos_ok.txt --only psf/requests --out test.csv
+Usage (from the project folder):
+    python3 -m todofate.mining.mine_todos          # data/repos_ok.txt -> data/todos.csv
+    python3 -m todofate.mining.mine_todos --only psf/requests --out test.csv
+
+A full run also writes data/mining_log.txt; a single-repo run (--only) leaves
+the log alone, so a quick test can't overwrite the real one.
 
 For every snapshot year (see config.py) only TODOs added in the year
 before T1 are kept. Label rule (per such TODO):
@@ -17,8 +20,8 @@ import random
 import re
 from collections import Counter
 
-import config
-from check_repos import commit_at, git
+from todofate import config
+from todofate.mining.check_repos import commit_at, git
 
 MARKER_RE = re.compile(r"\b(" + "|".join(config.MARKERS) + r")\b")
 # "TODO(alice): fix this"  ->  marker=TODO, owner=alice, body="fix this"
@@ -165,7 +168,7 @@ def mine_snapshot(slug, repo_dir, year, cache, stats):
 
 
 def mine_repo(slug):
-    repo_dir = f"{config.REPOS_DIR}/{slug.replace('/', '__')}"
+    repo_dir = config.repo_dir(slug)
     rows, stats, cache = [], Counter(), {}
     for year in config.SNAPSHOT_YEARS:
         rows.extend(mine_snapshot(slug, repo_dir, year, cache, stats))
@@ -178,9 +181,9 @@ def mine_repo(slug):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("repo_list")
+    ap.add_argument("repo_list", nargs="?", default=config.REPOS_OK)
     ap.add_argument("--only", help="mine a single owner/name from the list")
-    ap.add_argument("--out", default="todos.csv")
+    ap.add_argument("--out", default=config.TODOS_CSV)
     args = ap.parse_args()
 
     with open(args.repo_list, encoding="utf-8") as f:
@@ -207,8 +210,9 @@ def main():
     summary = (f"\n{len(all_rows)} TODOs -> {args.out}  "
                f"(resolved {resolved}, {resolved / len(all_rows):.1%}; rotting {len(all_rows) - resolved})")
     print(summary)
-    with open("mining_log.txt", "w", encoding="utf-8") as f:
-        f.write(f"snapshot years={config.SNAPSHOT_YEARS}\n" + "\n".join(log_lines) + summary + "\n")
+    if not args.only:
+        with open(config.MINING_LOG, "w", encoding="utf-8") as f:
+            f.write(f"snapshot years={config.SNAPSHOT_YEARS}\n" + "\n".join(log_lines) + summary + "\n")
 
 
 if __name__ == "__main__":

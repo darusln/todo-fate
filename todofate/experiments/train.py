@@ -1,8 +1,8 @@
 """Day 3: train the TODO-fate model and evaluate it on a time-based split.
 
-Usage:
-    python3 train.py                         # dataset.csv -> results_day3.md
-    python3 train.py --data test_dataset.csv --lam 0.01
+Usage (from the project folder):
+    python3 -m todofate.experiments.train    # data/dataset.csv -> results/day3_time_split.md
+    python3 -m todofate.experiments.train --iters 3000 --out results/day3_time_split_3000.md
 
 Split (by the year the TODO was observed, i.e. its cohort):
     train       cohorts up to 2021
@@ -21,15 +21,25 @@ import argparse
 import csv
 from collections import defaultdict
 from datetime import date
+from pathlib import Path
 
 import numpy as np
 
-from features import BINARY_FEATURES, NUMERIC_FEATURES
-from model.logreg import LogisticRegression
-from model.metrics import evaluate
-from model.tfidf import TfidfVectorizer
+from todofate import config
+from todofate.features.build_features import BINARY_FEATURES, NUMERIC_FEATURES
+from todofate.model.logreg import LogisticRegression
+from todofate.model.metrics import evaluate
+from todofate.model.tfidf import TfidfVectorizer
 
 METRICS = ["roc_auc", "pr_auc", "precision", "recall", "f1"]
+
+
+def display_path(path):
+    """A path as shown in reports: relative to the project folder when inside it."""
+    try:
+        return str(Path(path).resolve().relative_to(config.ROOT))
+    except ValueError:
+        return str(path)
 
 
 def load(path):
@@ -125,8 +135,8 @@ def top_weights(model, builder, n=15):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", default="dataset.csv")
-    ap.add_argument("--out", default="results_day3.md")
+    ap.add_argument("--data", default=config.DATASET_CSV)
+    ap.add_argument("--out", default=config.RESULTS_TIME_SPLIT)
     ap.add_argument("--val-year", type=int, default=2022)
     ap.add_argument("--lr", type=float, default=0.5)
     ap.add_argument("--iters", type=int, default=1000)
@@ -157,7 +167,7 @@ def main():
     curve = "\n".join(f"| {it} | {loss:.5f} |" for it, loss in model.loss_history)
     report = f"""# Day 3 results ({date.today()})
 
-Data: `{args.data}`, {len(rows)} TODOs.
+Data: `{display_path(args.data)}`, {len(rows)} TODOs.
 Settings: learning rate {args.lr}, {args.iters} iterations, L2 lambda {args.lam},
 TF-IDF min_df {args.min_df}, max {args.max_features} words ({len(builder.tfidf.vocab)} kept),
 class-weighted log-loss, decision threshold 0.5.
@@ -199,7 +209,7 @@ credit, so read them as directions, not exact importances.
 """
     with open(args.out, "w", encoding="utf-8") as f:
         f.write(report)
-    print(f"\nWrote {args.out}")
+    print(f"\nWrote {display_path(args.out)}")
 
 
 if __name__ == "__main__":

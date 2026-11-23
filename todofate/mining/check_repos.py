@@ -1,18 +1,19 @@
 """Step 1: clone candidate repos and keep only the ones fit for the study.
 
-Usage:
-    python check_repos.py candidates.txt
+Usage (from the project folder):
+    python3 -m todofate.mining.check_repos            # data/candidates.txt
+    python3 -m todofate.mining.check_repos other.txt
 
-candidates.txt holds one GitHub "owner/name" per line (# starts a comment).
-Writes repos_ok.txt with the repos that pass every check, and prints a
-table explaining why each rejected repo failed.
+The candidates file holds one GitHub "owner/name" per line (# starts a
+comment). Writes data/repos_ok.txt with the repos that pass every check, and
+prints a table explaining why each rejected repo failed.
 """
 
 import os
 import subprocess
 import sys
 
-import config
+from todofate import config
 
 
 def git(repo_dir, *args):
@@ -27,13 +28,13 @@ def git(repo_dir, *args):
 
 
 def clone(slug):
-    """Clone owner/name into repos/owner__name unless it is already there.
+    """Clone owner/name into data/repos/owner__name unless it is already there.
 
     --no-checkout: we never need a working copy. Every later step reads
     files straight out of git's history (git grep <commit>, git ls-tree),
     which is faster and avoids switching branches back and forth.
     """
-    target = os.path.join(config.REPOS_DIR, slug.replace("/", "__"))
+    target = config.repo_dir(slug)
     if not os.path.isdir(target):
         print(f"  cloning {slug} ...", flush=True)
         subprocess.run(
@@ -84,9 +85,10 @@ def check(slug):
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit("usage: python check_repos.py candidates.txt")
-    with open(sys.argv[1], encoding="utf-8") as f:
+    if len(sys.argv) > 2:
+        sys.exit("usage: python3 -m todofate.mining.check_repos [candidates.txt]")
+    candidates = sys.argv[1] if len(sys.argv) == 2 else config.CANDIDATES
+    with open(candidates, encoding="utf-8") as f:
         slugs = [l.split("#")[0].strip() for l in f]
     slugs = [s for s in slugs if s]
 
@@ -104,9 +106,9 @@ def main():
         if not problems:
             passed.append(slug)
 
-    with open("repos_ok.txt", "w", encoding="utf-8") as f:
+    with open(config.REPOS_OK, "w", encoding="utf-8") as f:
         f.write("\n".join(passed) + "\n")
-    print(f"\n{len(passed)}/{len(slugs)} repos passed -> repos_ok.txt")
+    print(f"\n{len(passed)}/{len(slugs)} repos passed -> {config.REPOS_OK.relative_to(config.ROOT)}")
 
 
 if __name__ == "__main__":
