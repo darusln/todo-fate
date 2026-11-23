@@ -261,7 +261,8 @@ about 3/n (rule of three).
 | is_docs_or_example | 25 | 12.0% | 32.6% | 0.4 |
 | marker_XXX | 442 | 11.1% | 34.8% | 0.3 |
 
-Numeric (mean resolved vs rotting): body_words 13.1 vs 9.9; body_chars 112 vs 71;
+Numeric (mean resolved vs rotting): body_words 13.1 vs 9.9 (but **median 6 vs 8**:
+the means are pulled up by generated setuptools outliers, see finding 12); body_chars 112 vs 71;
 file size, TODOs in file and file churn are almost identical between classes.
 
 ### 6.2 Day 3: time split (test = cohorts 2023–2024, 1,234 TODOs)
@@ -277,6 +278,11 @@ Validation (2022, model fit on 2019–2021): LR AUC 0.775, rule 0.695.
 Test > validation is explained by the extra training year; the test set was used once.
 732 vocabulary words kept. Loss 0.693 → 0.498 at 1,000 iterations, still falling
 very slowly (≈0.001 per 100 iterations).
+
+**Convergence check (done 2026-11-23, `results/day3_time_split_3000.md`):** at 3,000
+iterations the loss is 0.490 and test ROC-AUC is 0.832, unchanged (PR-AUC 0.646 → 0.644,
+F1 0.665 → 0.648, rot precision@50 still 1.000). The ranking has converged; keep the
+1,000-iteration results.
 
 Top weights toward resolved: is_deadline_tagged (+1.67), word:<ver> (+1.48),
 word:in (+1.01), has_owner_tag (+0.98), word:removed, asks_removal,
@@ -314,19 +320,34 @@ be presented as a **ranking**, not a yes/no classifier.
 3. Small clean projects barely use TODOs (flask 2, httpx 1, requests 7 at the
    2024 snapshot); TODO-heavy repos are large mature projects (generalisability limit).
 4. Deadline-tagged TODOs: 83% resolved vs 21% (3.9×). The effect holds without
-   scikit-learn (≈63% vs ≈21%, approximate, computed with the first regex version).
+   scikit-learn: 60.0% vs 20.9% (2.9×, n=180), from `results/feature_report_no_sklearn.txt`.
 5. scikit-learn's 69% is explained by its deprecation policy ("remove in 0.24");
    its untagged TODOs are resolved at ≈26%, close to other repos.
 6. Concrete, action-shaped TODOs get done: removal 3.1×, action verb 2.2×, owner tag 1.6×.
-7. Open-ended TODOs rot: XXX 0.3×, vague 0.5×, question 0.6×.
-8. **Issue links make no difference (1.0×, n=129)**, contrary to common advice.
+   Without scikit-learn: removal 2.1× and owner tag 2.4× hold (owner tag gets
+   stronger), but **action verb drops to 1.3×**: mostly a scikit-learn effect.
+7. Open-ended TODOs rot: XXX 0.3×, vague 0.5×, question 0.6×. Without
+   scikit-learn: XXX 0.4× holds; vague 0.7× and question 0.9× weaken.
+8. **Issue links: the pooled 1.0× (n=129) hides two opposite effects.** Outside
+   scikit-learn, issue-linked TODOs are resolved *more* often: 36.1% vs 22.5%
+   (1.6×, n=97, ≈2.8 standard errors; 51 of the 97 are from pandas). Inside
+   scikit-learn they are resolved far *less* often (7/32 = 22% vs 70%), because
+   scikit-learn's resolved TODOs are mostly deprecation deadlines, which rarely
+   cite an issue. Mixing the two cancels out to 1.0× (a Simpson's-paradox-style
+   effect). Do not claim "issue links make no difference"; say the effect
+   depends on the project and is modestly positive outside scikit-learn.
 9. File activity (size, churn, TODO count) carries no signal: what the TODO
    says matters, not where it lives.
 10. Label spot check found no errors (record n).
 11. Project restructuring shows up as "file deleted" exclusions: airflow 157,
     ansible 60 (both split code into separate packages).
-12. is_test (1.4×) and longer text may be scikit-learn artefacts. **Unverified**:
-    run the feature report without scikit-learn (command in §8).
+12. Checked without scikit-learn (2026-11-23): is_test weakens slightly (1.4× → 1.3×,
+    26.4% vs 21.0%). **"Longer TODOs get resolved" is an artefact of the mean:**
+    median length is 7 words resolved vs 8 rotting (6 vs 8 on the full data), so
+    resolved TODOs are, if anything, slightly shorter. The higher mean comes from
+    13 setuptools "TODOs" over 60 words (7 resolved), which are fragments of
+    JSON-schema strings in the generated `fastjsonschema_validations.py`.
+    Report medians, not means, for the numeric features.
 13. Deadline and removal overlap heavily; read their weights as directions.
 14. Model beats the rule on the time split (AUC 0.83 vs 0.73) and stays useful on
     untagged TODOs (0.74). All 50 most at-risk test TODOs really rotted (vs 68% base).
@@ -383,17 +404,15 @@ Project reorganised into `todofate/`, `data/`, `results/`, `docs/`, `tests/`
 output exactly (dataset.csv byte-identical; Day 3, cross-project and replay
 numbers identical).
 
-**Open checks (small), run from the project folder:**
-- setuptools AUC 0.398: check whether its rows come from the vendored
-  `setuptools/_distutils` copy (not in the exclusion list):
-  ```bash
-  python3 -c "import csv; r=[x for x in csv.DictReader(open('data/dataset.csv')) if x['repo']=='pypa/setuptools']; print(sum('_distutils' in x['path'] for x in r), 'of', len(r))"
-  ```
-  If large: report as a limitation (do not re-mine this late).
-- Convergence: `python3 -m todofate.experiments.train --iters 3000 --out results/day3_time_split_3000.md`;
-  if test AUC changes by < 0.005, keep the 1,000-iteration results and state convergence.
-- Confirm `python3 -m tests.test_model` prints "All checks passed." (screenshot for report).
-- Feature report without scikit-learn (finding 12):
+**Small checks, all done 2026-11-23:**
+- setuptools AUC 0.398 is *not* explained by vendored code: only 1 of its 89 rows
+  is in `setuptools/_distutils`. It is simply a weak repo for the model.
+- Convergence: done, see §6.2 (AUC unchanged at 3,000 iterations).
+- `python3 -m tests.test_model` prints "All checks passed." (14 OK lines; the
+  sklearn cross-check is skipped because sklearn isn't installed; gradient check
+  max difference 1.7e-10). Take the screenshot for the report.
+- Feature report without scikit-learn: `results/feature_report_no_sklearn.txt`;
+  findings 4, 6, 7, 8 and 12 updated with it. Command used:
   ```bash
   python3 -c "
   import csv
